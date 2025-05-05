@@ -35,75 +35,99 @@ namespace TaskFlow.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] Register request)
         {
-            // Check if user already exist
-            if (_context.Users.Any(u => u.Email == request.Email)) return BadRequest("User already exists");
-
-            var user = new User
+            try
             {
-                Name = request.Name,
-                Email = request.Email,
-            };
+                // Check if user already exist
+                if (_context.Users.Any(u => u.Email == request.Email)) return BadRequest("User already exists");
 
-            user.PasswordHash = _hasher.HashPassword(user, request.Password);
+                var user = new User
+                {
+                    Name = request.Name,
+                    Email = request.Email,
+                };
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+                user.PasswordHash = _hasher.HashPassword(user, request.Password);
 
-            return new StatusCodeResult(200);
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+
+                return new StatusCodeResult(200);
+            } catch (Exception e)
+            {
+                return StatusCode(500, new { message = e });
+            }
         }
 
         [HttpPost]
         public async Task<ActionResult<String>> Login([FromBody] Login request)
         {
-            Console.WriteLine("Request Received");
-            if (!_context.Users.Any(u => u.Email == request.Email)) return Unauthorized("Bad Credentials");
-
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-
-            if (user == null) return BadRequest(string.Empty);
-
-            var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
-
-            if (result == PasswordVerificationResult.Failed)
+            try
             {
-                return Unauthorized("Bad Credentials");
+                Console.WriteLine("Request Received");
+                if (!_context.Users.Any(u => u.Email == request.Email)) return Unauthorized("Bad Credentials");
+
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+
+                if (user == null) return BadRequest(string.Empty);
+
+                var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+
+                if (result == PasswordVerificationResult.Failed)
+                {
+                    return Unauthorized("Bad Credentials");
+                }
+
+                var token = GenerateJwtToken(user);
+
+                return Ok(new LoginResponse
+                {
+                    token = token
+                });
+            } catch (Exception e)
+            {
+                return StatusCode(500, new { message = e });
             }
-
-            var token = GenerateJwtToken(user);
-
-            return Ok(new LoginResponse
-            {
-                token = token
-            });
 
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUserById(int id)
         {
-            Console.WriteLine(id);
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            try
+            {
+                Console.WriteLine(id);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
-            if (user == null) { return NotFound(); }
+                if (user == null) { return NotFound(); }
 
-            return Ok(user);
+                return Ok(user);
+            } catch (Exception e)
+            {
+                return StatusCode(500, new { message = e });
+            }
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<User>>> GetAllUsers()
         {
-            var users = await _context.Users
+            try
+            {
+                var users = await _context.Users
                 .Select(u => new User
                 {
                     Id = u.Id,
                     Name = u.Name,
                     Email = u.Email,
                     Projects = u.Projects
-                  
+
                 })
                 .ToListAsync();
 
-            return Ok(users);
+                return Ok(users);
+            } catch (Exception e)
+            {
+                return StatusCode(500, new { message = e });
+            }
         }
 
         private string GenerateJwtToken(User user)

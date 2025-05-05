@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.VisualBasic;
 
 namespace TaskFlow.Models
 {
@@ -17,10 +16,10 @@ namespace TaskFlow.Models
         public Status.StatusType Status {  get; set; }
 
         [Column("DueDate")]
-        public DateTime DueDate { get; set; }
+        public DateTime? DueDate { get; set; }
 
         [Column("Commentaires")]
-        public ICollection<String> Commentaires { get; set; }
+        public ICollection<String>? Commentaires { get; set; }
 
         [ForeignKey("Project")]
         [Required]
